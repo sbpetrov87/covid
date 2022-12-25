@@ -1,0 +1,56 @@
+
+--Looking at Total Cases vs. Total Deaths
+--shows thes likelihood dying if you contract covid in US
+SELECT location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS DeathPercentage
+FROM `my-data-project1234-360322.covid.deaths`
+WHERE location="United States"
+ORDER BY 1,2
+--Looking at Total Cases vs. Population
+--shows what percentage of population that got covid in US
+SELECT location, date, total_cases, population, (total_cases/population)*100 AS GotCovidPercentage
+FROM `my-data-project1234-360322.covid.deaths`
+WHERE location="United States"
+ORDER BY 1,2
+--Identifying countries with highest infection compared to population
+SELECT location,MAX(total_cases) AS HighestInfectionCount, population, MAX((total_cases/population))*100 AS PercentPopulationInfected
+FROM `my-data-project1234-360322.covid.deaths`
+GROUP BY population,location
+ORDER BY PercentPopulationInfected DESC
+--Identifying countries with Highest Death Count
+SELECT location, MAX(total_deaths) AS TotalDeathCount
+FROM `my-data-project1234-360322.covid.deaths`
+WHERE continent is not null
+GROUP BY location
+ORDER BY TotalDeathCount desc
+--Identify total death count by continent
+SELECT location, MAX(total_deaths) AS TotalDeathCount
+FROM `my-data-project1234-360322.covid.deaths`
+WHERE continent is null
+GROUP BY location
+ORDER BY TotalDeathCount desc
+--Global Numbers
+SELECT date, SUM(new_cases) as total_cases, SUM(new_deaths) as total_deaths, SUM(new_deaths)/SUM(new_cases)*100 AS DeathPercentage
+FROM `my-data-project1234-360322.covid.deaths`
+WHERE continent is not null
+GROUP BY date
+ORDER BY 1,2
+--Looking at Total Pop. Vs. Vax.
+CREATE TABLE covid.VaxDeathsJoined AS
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (Partition by dea.location ORDER BY dea.location, dea.date) AS rolling_vax_count
+FROM `my-data-project1234-360322.covid.deaths` dea
+JOIN `my-data-project1234-360322.covid.vax` vac
+ON dea.location = vac.location
+AND dea.date = vac.date
+WHERE dea.continent is not null
+ORDER BY 2, 3
+--Looking at Percent of population for each continent and location vaccinated by 2021
+CREATE VIEW covid.PerccentofPplVaxbyCountry AS
+SELECT location,MAX((rolling_vax_count/population))*100 AS PercentofPplVax
+FROM `my-data-project1234-360322.covid.VaxDeathsJoined`
+GROUP BY location
+ORDER BY location
+CREATE VIEW covid.PerccentofPplVaxbyCont AS
+SELECT continent,MAX((rolling_vax_count/population))*100 AS PercentofPplVax
+FROM `my-data-project1234-360322.covid.VaxDeathsJoined`
+GROUP BY continent
+ORDER BY continent
